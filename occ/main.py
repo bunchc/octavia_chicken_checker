@@ -4,7 +4,7 @@ from cement.core.exc import CaughtSignal
 from .core.exc import OctaviaChickenCheckerError
 from .controllers.base import Base
 from .controllers.loadbalancer import LoadBalancer
-from openstack import connect
+import openstack
 
 # configuration defaults
 CONFIG = init_defaults('occ')
@@ -16,8 +16,12 @@ def connect_to_openstack(app):
 
     cloud = "default"
 
-    app.extend('conn', connect(cloud=cloud))
+    app.extend('conn', openstack.connect(cloud=cloud))
 
+
+def openstack_errors(app):
+    app.log.info('Loading openstack exceptions')
+    app.extend('err', openstack.exceptions)
 
 class OctaviaChickenChecker(App):
     """Octavia Chicken Checker primary application."""
@@ -34,6 +38,7 @@ class OctaviaChickenChecker(App):
         # load additional framework extensions
         extensions = [
             'yaml',
+            'print',
             'colorlog',
             'jinja2',
         ]
@@ -41,6 +46,7 @@ class OctaviaChickenChecker(App):
         # load hooks
         hooks = [
             ('post_setup', connect_to_openstack),
+            ('post_setup', openstack_errors),
         ]
 
         # configuration handler
@@ -53,7 +59,7 @@ class OctaviaChickenChecker(App):
         log_handler = 'colorlog'
 
         # set the output handler
-        output_handler = 'jinja2'
+        output_handler = 'yaml'
 
         # register handlers
         handlers = [

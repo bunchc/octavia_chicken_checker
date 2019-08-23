@@ -4,7 +4,7 @@ clean:
 	find . -name '*.py[co]' -delete
 
 virtualenv:
-	virtualenv --python=/home/bunchc/.python-virtualenvs/default-python-3/bin/python --prompt '|> occ <| ' env
+	virtualenv --python=/usr/bin/python3 --prompt '|> occ <| ' env
 	env/bin/pip install -r requirements-dev.txt
 	env/bin/python setup.py develop
 	@echo
