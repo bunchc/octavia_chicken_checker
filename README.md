@@ -10,6 +10,12 @@ $ pip install -r requirements.txt
 $ pip install setup.py
 ```
 
+## Running
+
+```shell
+$ occ list
+```
+
 ## Development
 
 This project includes a number of helpers in the `Makefile` to streamline common development tasks.
