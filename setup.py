@@ -24,6 +24,12 @@ setup(
     packages=find_packages(exclude=['ez_setup', 'tests*']),
     package_data={'occ': ['templates/*']},
     include_package_data=True,
+    install_requires=[
+        'cement==3.0.4',
+        'jinja2',
+        'pyyaml',
+        'colorlog',
+    ],
     entry_points="""
         [console_scripts]
         occ = occ.main:main
