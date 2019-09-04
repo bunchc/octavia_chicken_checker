@@ -9,7 +9,7 @@ LONG_DESCRIPTION = f.read()
 f.close()
 
 setup(
-    name='occ',
+    name='occ2',
     version=VERSION,
     description='Octavia Chicken Checker looks for abandoned Octavia load balancer artifacts, amphoras, and so forth. Optionally it will clean them up as well.',
     long_description=LONG_DESCRIPTION,
@@ -24,6 +24,12 @@ setup(
     packages=find_packages(exclude=['ez_setup', 'tests*']),
     package_data={'occ': ['templates/*']},
     include_package_data=True,
+    install_requires=[
+        'cement==3.0.4',
+        'jinja2',
+        'pyyaml',
+        'colorlog',
+    ],
     entry_points="""
         [console_scripts]
         occ = occ.main:main
