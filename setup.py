@@ -1,8 +1,8 @@
 
 from setuptools import setup, find_packages
-from occ.core.version import get_version
+from occ.core import version
 
-VERSION = get_version()
+VERSION = version.get_version()
 
 f = open('README.md', 'r')
 LONG_DESCRIPTION = f.read()
@@ -16,7 +16,7 @@ setup(
     long_description_content_type='text/markdown',
     author='Cody Bunch',
     author_email='cody.bunch@rackspace.com',
-    classfilters=[
+    classifiers=[
         'Development Status :: 3 - Alpha',
         'Programming Language :: Python :: 3',
     ],
@@ -24,6 +24,12 @@ setup(
     packages=find_packages(exclude=['ez_setup', 'tests*']),
     package_data={'occ': ['templates/*']},
     include_package_data=True,
+    install_requires=[
+        'cement==3.0.4',
+        'jinja2',
+        'pyyaml',
+        'colorlog',
+    ],
     entry_points="""
         [console_scripts]
         occ = occ.main:main
