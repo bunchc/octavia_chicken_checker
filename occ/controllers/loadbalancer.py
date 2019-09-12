@@ -89,27 +89,12 @@ class LoadBalancer(Controller):
 
     @ex(
         help='list broken load balancers',
-
-        # Specify what bit of data are we looking for
-        arguments=[
-            ### add '-l', '--lb' to look for orphaned load balancers
-            ( [ '-t', '--type' ], {
-                'help': 'Specify type of thing to list [lb, amphora]',
-                'action': 'store',
-                'dest': 'type' } ),
-        ],
     )
     def list(self):
-        lb = {
-            'type' : 'lb',
-        }
-
-        if self.app.pargs.type is not None:
-            lb['type'] = self.app.pargs.type
-
         self.app.log.info('Gather environment data %s' % lb['type'])
-        lbs = get_load_balancer_info(self, self.app.conn)
-        self.app.render(lbs)
+        load_balancers = get_load_balancer_info(self, self.app.conn)
+        for loadbalancer in loadbalancers:
+            self.app.render(loadbalancers[loadbalancer])
 
 
     @ex(
