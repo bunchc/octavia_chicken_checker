@@ -37,6 +37,7 @@ def get_load_balancer_info(self, conn):
     ips = list(conn.network.ips())
 
     lbdata = {}
+    bad_lbs = {}
     for lb in lbs:
         # Correlate project IDs to project names
         try:
@@ -68,7 +69,15 @@ def get_load_balancer_info(self, conn):
                 'listeners': listenerdata
             }
         }
-    return lbdata
+
+    for loadbalancer in lbdata:
+        if lbs[lb]['data']['project_name'] == 'missing' or \
+            lbs[lb]['data']['operating_status'] == 'ERROR':
+            bad_lbs[lb.id] = {
+                'id': lb.id
+            }
+
+    return bad_lbs
 
 
 class LoadBalancer(Controller):
@@ -100,9 +109,31 @@ class LoadBalancer(Controller):
 
         self.app.log.info('Gather environment data %s' % lb['type'])
         lbs = get_load_balancer_info(self, self.app.conn)
+        self.app.render(lbs)
 
-        for lb in lbs:
-            if lbs[lb]['data']['project_name'] == 'missing' or \
-                lbs[lb]['data']['operating_status'] == 'ERROR':
-                self.app.render(lbs[lb])
-        self.app.print('Test')
+
+    @ex(
+        help='delete broken load balancers',
+
+        # By default, prompt for each delete, if --confirm, do not confirm
+        arguments=[
+            ### add '--confirm false' to suppress prompting for deletion
+            ( [ '--confirm' ], {
+                'help': 'Specify false to not prompt to delete each load balancer',
+                'action': 'store',
+                'dest': 'confirm' } ),
+        ],
+    )
+    def delete(self):
+        confirm = {
+            'confirm' : True,
+        }
+
+        if self.app.pargs.confirm is not None:
+            confirm['confirm'] = self.app.pargs.confirm
+
+        self.app.log.info('Gather environment data %s' % lb['type'])
+        lbs = get_load_balancer_info(self, self.app.conn)
+
+        for load_balancer in lbs:
+            self.app.render(lbs[load_balancer])

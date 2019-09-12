@@ -1,11 +1,13 @@
-FROM python:3.6-alpine
+FROM python:3
 LABEL maintainer="Cody Bunch <cody.bunch@rackspace.com>"
 
 ENV PS1="\[\e[0;33m\]|> occ <| \[\e[1;35m\]\W\[\e[0m\] \[\e[0m\]# "
 
 WORKDIR /src
 COPY . /src
-RUN pip install --no-cache-dir -r requirements.txt \
-    && python setup.py install
+RUN mkdir -p /etc/openstack 
+RUN pip install --no-cache-dir -r requirements.txt
+RUN python setup.py install
 WORKDIR /
-ENTRYPOINT ["occ"]
+
+CMD ["occ"]
