@@ -71,10 +71,10 @@ def get_load_balancer_info(self, conn):
         }
 
     for loadbalancer in lbdata:
-        if lbs[lb]['data']['project_name'] == 'missing' or \
-            lbs[lb]['data']['operating_status'] == 'ERROR':
-            bad_lbs[lb.id] = {
-                'id': lb.id
+        if lbdata[loadbalancer]['data']['project_name'] == 'missing' or \
+            lbdata[loadbalancer]['data']['operating_status'] == 'ERROR':
+            bad_lbs[loadbalancer.id] = {
+                'id': loadbalancer.id
             }
 
     return bad_lbs
@@ -91,7 +91,7 @@ class LoadBalancer(Controller):
         help='list broken load balancers',
     )
     def list(self):
-        self.app.log.info('Gather environment data %s' % lb['type'])
+        self.app.log.info('Gather environment data')
         load_balancers = get_load_balancer_info(self, self.app.conn)
         for loadbalancer in loadbalancers:
             self.app.render(loadbalancers[loadbalancer])
@@ -117,7 +117,7 @@ class LoadBalancer(Controller):
         if self.app.pargs.confirm is not None:
             confirm['confirm'] = self.app.pargs.confirm
 
-        self.app.log.info('Gather environment data %s' % lb['type'])
+        self.app.log.info('Gather environment data')
         lbs = get_load_balancer_info(self, self.app.conn)
 
         for load_balancer in lbs:
