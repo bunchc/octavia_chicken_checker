@@ -11,3 +11,4 @@ RUN python setup.py install
 WORKDIR /
 
 CMD ["occ"]
+ENTRYPOINT ["occ"]

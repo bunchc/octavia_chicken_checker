@@ -63,7 +63,6 @@ class OctaviaChickenChecker(App):
 
         # register handlers
         handlers = [
-            Base,
             LoadBalancer
         ]
 
