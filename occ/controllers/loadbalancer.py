@@ -1,4 +1,4 @@
-from cement import Controller, ex
+from cement import Controller, ex, shell
 
 
 def get_pool_members(conn, pool_id):
@@ -37,6 +37,7 @@ def get_load_balancer_info(self, conn):
     ips = list(conn.network.ips())
 
     lbdata = {}
+    bad_lbs = {}
     for lb in lbs:
         # Correlate project IDs to project names
         try:
@@ -54,21 +55,30 @@ def get_load_balancer_info(self, conn):
         # Correlate listener data
         listenerdata = get_listener_info(self.app.conn, lb.listeners)
 
-        # put all the data in a dict
-        lbdata[lb.id] = {
-            'id': lb.id,
-            'data': {
-                'vip': lb.vip_address,
-                'project_id': lb.project_id,
-                'project_name': project_name,
-                'vip_address': lb.vip_address,
-                'floating_ip': floating_ip_addr,
-                'operating_status': lb.operating_status,
-                'provisioning_status': lb.provisioning_status,
-                'listeners': listenerdata
+        # Select the broken ones and put all the data in a dict
+        if project_name == 'missing' or lb.operating_status == 'ERROR':
+            lbdata[lb.id] = {
+                'id': lb.id,
+                'data': {
+                    'vip': lb.vip_address,
+                    'project_id': lb.project_id,
+                    'project_name': project_name,
+                    'vip_address': lb.vip_address,
+                    'floating_ip': floating_ip_addr,
+                    'operating_status': lb.operating_status,
+                    'provisioning_status': lb.provisioning_status,
+                    'listeners': listenerdata
+                }
             }
-        }
+
     return lbdata
+
+
+def delete_load_balancer(self, conn, lb_id):
+    # Deletes a loadbalancer
+    self.app.log.info('Deleting: %s' % lb_id, __name__)
+    res = conn.load_balancer.delete_load_balancer(lb_id, True, True)
+    return res
 
 
 class LoadBalancer(Controller):
@@ -80,29 +90,48 @@ class LoadBalancer(Controller):
 
     @ex(
         help='list broken load balancers',
-
-        # Specify what bit of data are we looking for
-        arguments=[
-            ### add '-l', '--lb' to look for orphaned load balancers
-            ( [ '-t', '--type' ], {
-                'help': 'Specify type of thing to list [lb, amphora]',
-                'action': 'store',
-                'dest': 'type' } ),
-        ],
     )
     def list(self):
-        lb = {
-            'type' : 'lb',
+        self.app.log.info('Gathering list of broken loadbalancers', __name__)
+        loadbalancers = get_load_balancer_info(self, self.app.conn)
+        self.app.print("Issues have been found with the following loadbalancers:")
+        for loadbalancer in loadbalancers:
+            self.app.render(loadbalancers[loadbalancer]['id'])
+
+
+    @ex(
+        help='delete broken load balancers',
+
+        # By default, prompt for each delete, if --confirm, do not confirm
+        arguments=[
+            ### add '--confirm false' to suppress prompting for deletion
+            ( [ '--confirm' ], {
+                'help': 'Specify false to not prompt to delete each load balancer',
+                'action': 'store',
+                'dest': 'confirm' } ),
+        ],
+    )
+    def delete(self):
+        confirm = {
+            'confirm' : True,
         }
 
-        if self.app.pargs.type is not None:
-            lb['type'] = self.app.pargs.type
+        if self.app.pargs.confirm is not None:
+            if self.app.pargs.confirm.lower() == 'false':
+                confirm['confirm'] = False
+            else:
+                confirm['confirm'] = True
 
-        self.app.log.info('Gather environment data %s' % lb['type'])
-        lbs = get_load_balancer_info(self, self.app.conn)
+        self.app.log.info('Gathering list of broken loadbalancers', __name__)
+        loadbalancers = get_load_balancer_info(self, self.app.conn)
 
-        for lb in lbs:
-            if lbs[lb]['data']['project_name'] == 'missing' or \
-                lbs[lb]['data']['operating_status'] == 'ERROR':
-                self.app.render(lbs[lb])
-        self.app.print('Test')
+        for loadbalancer in loadbalancers:
+            if confirm['confirm'] is False:
+                deleted = delete_load_balancer(self, self.app.conn, loadbalancers[loadbalancer]['id'])
+            else:
+                delete_it = shell.Prompt("Delete: %s ?" % loadbalancers[loadbalancer]['id'], options=['yes', 'No'], default = 'No')
+                result = delete_it.prompt()
+                if result.lower() == 'yes':
+                    deleted = delete_load_balancer(self, self.app.conn, loadbalancers[loadbalancer]['id'])
+                else:
+                    self.app.log.info('Not deleting', __name__)
