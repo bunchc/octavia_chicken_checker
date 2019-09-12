@@ -76,7 +76,7 @@ def get_load_balancer_info(self, conn):
 
 def delete_load_balancer(self, conn, lb_id):
     # Deletes a loadbalancer
-    self.app.log('Deleting: %s' % lb_id, __name__)
+    self.app.log.info('Deleting: %s' % lb_id, __name__)
     res = conn.load_balancer.delete_load_balancer(lb_id, True, True)
     return res
 
@@ -117,7 +117,10 @@ class LoadBalancer(Controller):
         }
 
         if self.app.pargs.confirm is not None:
-            confirm['confirm'] = self.app.pargs.confirm
+            if self.app.pargs.confirm.lower() == 'false':
+                confirm['confirm'] = False
+            else:
+                confirm['confirm'] = True
 
         self.app.log.info('Gathering list of broken loadbalancers', __name__)
         loadbalancers = get_load_balancer_info(self, self.app.conn)
@@ -126,9 +129,9 @@ class LoadBalancer(Controller):
             if confirm['confirm'] is False:
                 deleted = delete_load_balancer(self, self.app.conn, loadbalancers[loadbalancer]['id'])
             else:
-                delete_it = shell.Prompt("Delete: %s?" % loadbalancers[loadbalancer]['id'], options=['Yes', 'no'], default = 'no')
+                delete_it = shell.Prompt("Delete: %s ?" % loadbalancers[loadbalancer]['id'], options=['yes', 'No'], default = 'No')
                 result = delete_it.prompt()
-                if result == 'Yes':
-                    delete_loadbalancer
+                if result.lower() == 'yes':
+                    deleted = delete_load_balancer(self, self.app.conn, loadbalancers[loadbalancer]['id'])
                 else:
                     self.app.log.info('Not deleting', __name__)
