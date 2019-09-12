@@ -1,4 +1,4 @@
-from cement import Controller, ex
+from cement import Controller, ex, shell
 
 
 def get_pool_members(conn, pool_id):
@@ -55,29 +55,23 @@ def get_load_balancer_info(self, conn):
         # Correlate listener data
         listenerdata = get_listener_info(self.app.conn, lb.listeners)
 
-        # put all the data in a dict
-        lbdata[lb.id] = {
-            'id': lb.id,
-            'data': {
-                'vip': lb.vip_address,
-                'project_id': lb.project_id,
-                'project_name': project_name,
-                'vip_address': lb.vip_address,
-                'floating_ip': floating_ip_addr,
-                'operating_status': lb.operating_status,
-                'provisioning_status': lb.provisioning_status,
-                'listeners': listenerdata
-            }
-        }
-
-    for loadbalancer in lbdata:
-        if lbdata[loadbalancer]['data']['project_name'] == 'missing' or \
-            lbdata[loadbalancer]['data']['operating_status'] == 'ERROR':
-            bad_lbs[loadbalancer.id] = {
-                'id': loadbalancer.id
+        # Select the broken ones and put all the data in a dict
+        if lb.project_name == 'missing' or lb.operating_status == 'ERROR':
+            lbdata[lb.id] = {
+                'id': lb.id,
+                'data': {
+                    'vip': lb.vip_address,
+                    'project_id': lb.project_id,
+                    'project_name': project_name,
+                    'vip_address': lb.vip_address,
+                    'floating_ip': floating_ip_addr,
+                    'operating_status': lb.operating_status,
+                    'provisioning_status': lb.provisioning_status,
+                    'listeners': listenerdata
+                }
             }
 
-    return bad_lbs
+    return lbdata
 
 
 class LoadBalancer(Controller):
@@ -91,10 +85,11 @@ class LoadBalancer(Controller):
         help='list broken load balancers',
     )
     def list(self):
-        self.app.log.info('Gather environment data')
-        load_balancers = get_load_balancer_info(self, self.app.conn)
+        self.app.log.info('Gathering list of broken loadbalancers')
+        loadbalancers = get_load_balancer_info(self, self.app.conn)
+        self.app.print("Issues have been found with the following loadbalancers:")
         for loadbalancer in loadbalancers:
-            self.app.render(loadbalancers[loadbalancer])
+            self.app.render(loadbalancers[loadbalancer]['id'])
 
 
     @ex(
@@ -114,11 +109,15 @@ class LoadBalancer(Controller):
             'confirm' : True,
         }
 
+        delete_it = shell.Prompt("Delete?", options=['Yes', 'no'], default = 'no')
+
         if self.app.pargs.confirm is not None:
             confirm['confirm'] = self.app.pargs.confirm
 
-        self.app.log.info('Gather environment data')
-        lbs = get_load_balancer_info(self, self.app.conn)
-
-        for load_balancer in lbs:
-            self.app.render(lbs[load_balancer])
+        self.app.log.info('Gathering list of broken loadbalancers')
+        loadbalancers = get_load_balancer_info(self, self.app.conn)
+        self.app.log.info('Deleting broken loadbalancers')
+        for loadbalancer in loadbalancers:
+            self.app.render(loadbalancers[loadbalancer]['id'])
+            result = delete_it.prompt()
+            self.app.print(result)
